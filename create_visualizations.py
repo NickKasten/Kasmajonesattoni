@@ -280,5 +280,58 @@ for i, category in enumerate(mgr_df['Team Size Category'].cat.categories):
 plt.tight_layout()
 plt.savefig(f'{viz_dir}/team_size_vs_cost_boxplot.png', dpi=300)
 
-print("Added manager correlation analysis visualizations")
-print(f"All visualizations saved to {viz_dir}/ directory")
+# 12. Average Violations per Employee by Department
+plt.figure(figsize=(14, 8))
+
+# Sort departments by violation rate
+dept_violation_rate = dept_df.sort_values('Avg Violations per Employee', ascending=False)
+
+# Create color gradient based on violation rates
+colors = sns.color_palette("RdYlGn_r", len(dept_violation_rate))
+
+# Create bar chart
+ax = sns.barplot(
+    x='Department', 
+    y='Avg Violations per Employee', 
+    data=dept_violation_rate,
+    palette=colors
+)
+
+plt.title('Average Violations per Employee by Department', fontsize=16)
+plt.xlabel('Department', fontsize=14)
+plt.ylabel('Average Violations per Employee', fontsize=14)
+plt.xticks(rotation=45, ha='right')
+
+# Add employee count and total violation annotations
+for i, (rate, emps, total) in enumerate(zip(
+    dept_violation_rate['Avg Violations per Employee'], 
+    dept_violation_rate['Number of Employees'],
+    dept_violation_rate['Total Violations']
+)):
+    # Show employee count above bar
+    ax.text(i, rate + 0.5, f"{int(emps)} employees", ha='center', fontsize=9)
+    
+    # Show total violations inside bar
+    ax.text(i, rate/2, f"{int(total)} total", ha='center', color='white', 
+            fontsize=9, fontweight='bold')
+
+# Add the company average as a horizontal line
+company_avg = dept_df['Total Violations'].sum() / dept_df['Number of Employees'].sum()
+plt.axhline(y=company_avg, color='blue', linestyle='--', alpha=0.7)
+plt.text(
+    len(dept_violation_rate) - 1, company_avg + 0.2, 
+    f'Company Average: {company_avg:.1f}', 
+    ha='right', color='blue', fontweight='bold'
+)
+
+# Add cost per violation as text on top of each bar
+for i, (rate, cost, violations) in enumerate(zip(
+    dept_violation_rate['Avg Violations per Employee'], 
+    dept_violation_rate['Total Cost ($)'],
+    dept_violation_rate['Total Violations']
+)):
+    cost_per_violation = cost / violations if violations > 0 else 0
+    ax.text(i, rate + 1.0, f"${cost_per_violation:.2f}/violation", ha='center', fontsize=8)
+
+plt.tight_layout()
+plt.savefig(f'{viz_dir}/dept_violation_rate.png', dpi=300)
