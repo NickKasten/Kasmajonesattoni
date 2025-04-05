@@ -7,7 +7,7 @@ if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
 # Read the CSV file
-csv_path = "Time Rates - violations.csv"
+csv_path = "Time_Rates_Updated.csv"
 df = pd.read_csv(csv_path)
 
 # Drop empty rows (if needed)
