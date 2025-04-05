@@ -13,15 +13,27 @@ try:
     all_violations_df = pd.read_csv('/Users/teddyjones/projects/Datathon/Kasmajonesattoni/Time Rates - violations.csv')
     print(f"Loaded violations data with {len(all_violations_df)} records")
     
-    # Group by employee_id and year
-    violation_summary = all_violations_df.groupby(['employee_id', 'year']).agg({
-        'violations': 'sum'
-    }).reset_index()
+    # Check available columns
+    print(f"Available columns: {all_violations_df.columns.tolist()}")
+    
+    # Use violations_max as the violations column
+    if 'violations_max' in all_violations_df.columns:
+        # Add a new column 'violations' based on violations_max
+        all_violations_df['violations'] = all_violations_df['violations_max']
+        
+        # Group by employee_id and year
+        violation_summary = all_violations_df.groupby(['employee_id', 'year']).agg({
+            'violations': 'sum'
+        }).reset_index()
+        
+        print(f"Processed {len(violation_summary)} violation records")
+    else:
+        raise Exception("Neither 'violations' nor 'violations_max' column found")
     
 except Exception as e:
     print(f"Error loading violations file: {e}")
     
-    # Option B: Try to process individual files with corrected ID extraction
+    # Option B: Try to process individual files
     violations_data = []
     employee_files = glob.glob('employee_data/employee_*.csv')
     
@@ -29,21 +41,32 @@ except Exception as e:
         try:
             emp_df = pd.read_csv(file_path)
             
-            # Extract employee_id from filename using regex to get just the number
+            # Check columns in the first file
+            if len(violations_data) == 0:
+                print(f"Sample columns in {file_path}: {emp_df.columns.tolist()}")
+            
+            # Extract employee_id from filename using regex
             match = re.search(r'employee_(\d+)\.csv', file_path)
             if match:
                 employee_id = int(match.group(1))
                 
-                # Group by year and sum violations
-                yearly_violations = emp_df.groupby('year').agg({
-                    'violations': 'sum'
-                }).reset_index()
-                
-                # Add employee_id to the grouped data
-                yearly_violations['employee_id'] = employee_id
-                violations_data.append(yearly_violations)
+                # Add violations column using violations_max
+                if 'violations_max' in emp_df.columns:
+                    emp_df['violations'] = emp_df['violations_max']
+                    
+                    # Group by year and sum violations
+                    yearly_violations = emp_df.groupby('year').agg({
+                        'violations': 'sum'
+                    }).reset_index()
+                    
+                    # Add employee_id to the grouped data
+                    yearly_violations['employee_id'] = employee_id
+                    violations_data.append(yearly_violations)
+                else:
+                    print(f"No violations_max column in {file_path}")
             else:
                 print(f"Couldn't extract employee ID from: {file_path}")
+                
         except Exception as e:
             print(f"Error processing {file_path}: {e}")
     
