@@ -199,4 +199,86 @@ plt.legend(title='Department')
 plt.tight_layout()
 plt.savefig(f'{viz_dir}/dept_violation_trends.png', dpi=300)
 
+# 10. Correlation between Manager Team Size and Cost per Employee
+plt.figure(figsize=(12, 8))
+
+# Filter out managers with 0 employees that would cause division by zero
+valid_mgrs = mgr_df[mgr_df['Number of Employees'] > 0]
+
+# Create scatter plot
+scatter = plt.scatter(
+    valid_mgrs['Number of Employees'], 
+    valid_mgrs['Avg Cost per Employee ($)'],
+    s=valid_mgrs['Total Cost ($)'] / 100,  # Size points by total cost
+    c=valid_mgrs['Total Violations'],  # Color points by total violations
+    cmap='viridis',
+    alpha=0.7
+)
+
+# Add trend line
+z = np.polyfit(valid_mgrs['Number of Employees'], valid_mgrs['Avg Cost per Employee ($)'], 1)
+p = np.poly1d(z)
+plt.plot(valid_mgrs['Number of Employees'], p(valid_mgrs['Number of Employees']), 
+         "r--", linewidth=2, label=f'Trend: y={z[0]:.2f}x+{z[1]:.2f}')
+
+# Calculate correlation coefficient
+corr = valid_mgrs['Number of Employees'].corr(valid_mgrs['Avg Cost per Employee ($)'])
+
+# Add correlation information
+plt.text(0.05, 0.95, f'Correlation: {corr:.2f}', transform=plt.gca().transAxes, 
+         fontsize=12, verticalalignment='top', 
+         bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+
+# Add labels for top cost-per-employee managers
+for i, row in valid_mgrs.sort_values('Avg Cost per Employee ($)', ascending=False).head(5).iterrows():
+    plt.annotate(row['Manager'], 
+                xy=(row['Number of Employees'], row['Avg Cost per Employee ($)']),
+                xytext=(5, 5), textcoords='offset points',
+                fontsize=9)
+
+# Add colorbar legend for violations
+cbar = plt.colorbar(scatter)
+cbar.set_label('Total Violations')
+
+# Add size legend
+sizes = [500, 1000, 5000]
+labels = ['$500', '$1,000', '$5,000']
+# Create dummy scatter points just for the legend
+for size, label in zip(sizes, labels):
+    plt.scatter([], [], s=size/100, c='gray', alpha=0.7, label=f'Cost: {label}')
+
+plt.title('Relationship Between Team Size and Average Violation Cost per Employee', fontsize=16)
+plt.xlabel('Number of Employees Supervised', fontsize=14)
+plt.ylabel('Average Cost per Employee ($)', fontsize=14)
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.legend(title='Total Cost', loc='upper right')
+
+plt.tight_layout()
+plt.savefig(f'{viz_dir}/manager_team_size_vs_cost.png', dpi=300)
+
+# 11. Boxplot of cost per employee grouped by team size categories
+# Create team size categories
+mgr_df['Team Size Category'] = pd.cut(
+    mgr_df['Number of Employees'],
+    bins=[0, 1, 3, 5, 10, float('inf')],
+    labels=['1 Employee', '2-3 Employees', '4-5 Employees', '6-10 Employees', '10+ Employees']
+)
+
+plt.figure(figsize=(12, 8))
+sns.boxplot(x='Team Size Category', y='Avg Cost per Employee ($)', data=mgr_df)
+plt.title('Distribution of Cost per Employee by Team Size', fontsize=16)
+plt.xlabel('Team Size', fontsize=14)
+plt.ylabel('Average Cost per Employee ($)', fontsize=14)
+plt.xticks(rotation=0)
+
+# Add the number of managers in each category as annotations
+for i, category in enumerate(mgr_df['Team Size Category'].cat.categories):
+    count = len(mgr_df[mgr_df['Team Size Category'] == category])
+    plt.text(i, mgr_df['Avg Cost per Employee ($)'].max() * 0.9, 
+             f'n={count}', ha='center', fontsize=10)
+
+plt.tight_layout()
+plt.savefig(f'{viz_dir}/team_size_vs_cost_boxplot.png', dpi=300)
+
+print("Added manager correlation analysis visualizations")
 print(f"All visualizations saved to {viz_dir}/ directory")
